@@ -51,6 +51,7 @@ eq(k.map(x => [x.id, x.type]), [['chungbuk-child:1259144', '어린이집'], ['ch
 eq(tags({ ...k[0], place: null }).osong, 0, 'childcare not osong without detail address (name-only never counts)');
 const addr = childcareAddress('<table><tr><th>소재지</th><td>충청북도 청주시 흥덕구 오송읍 오송생명14로 217</td></tr></table>');
 eq(addr?.includes('오송읍'), true, 'detail address parsed');
+eq(childcareAddress('<dl><dt>소재지</dt><dd>충청북도 청주시 흥덕구 복대1동 담당자명 홍길동</dd></dl>'), '충청북도 청주시 흥덕구 복대1동', 'address trims following label');
 eq(tags({ ...k[0], place: addr }).osong, 1, 'childcare osong by verified address');
 eq(tags({ title: '연장반', organization: '햇살어린이집', place: '세종특별자치시 조치원읍 신흥리 1', source: 'sejong-child' }).jochiwon, 1, 'jochiwon by address');
 

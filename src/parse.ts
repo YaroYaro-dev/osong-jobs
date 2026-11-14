@@ -155,7 +155,9 @@ export function parseChildcare(html: string, center: 'chungbuk' | 'sejong'): Job
 export function childcareAddress(html: string): string | null {
   const text = clean(html);
   const m = text.match(/(충청북도|충북|세종특별자치시|세종)\s[^|]{2,60}?(읍|면|동|로|길)\s?[^\s|]{0,20}/);
-  return m ? m[0].trim() : null;
+  if (!m) return null;
+  // 주소 뒤에 붙는 다음 칸 이름(담당자명, 전화번호 등)은 잘라낸다
+  return m[0].replace(/\s*(담당자명?|전화번호?|연락처|시설장|팩스|이메일|홈페이지)[\s\S]*$/, '').trim() || null;
 }
 
 // ───────── 세종 유치원·학교 홈페이지 게시판 ─────────
