@@ -138,11 +138,11 @@ export function parseChildcare(html: string, center: 'chungbuk' | 'sejong'): Job
   for (const r of t.rows) {
     const id = postId(r.raw); const title = titleOf(r.cells[iTitle] || '');
     const posted = toDate(r.cells[iPosted] || ''); if (!id || !title || !posted) continue;
-    const job = clean(r.cells[iJob] || ''); const nurse = /간호/.test(job + title);
+    const job = clean(r.cells[iJob] || '');
     const area = clean(r.cells[iPlace] || '');
     out.push({
       id: `${center}-child:${id}`, source: `${center}-child`, region: center === 'sejong' ? '세종' : '충북',
-      type: nurse ? '어린이집 간호' : '어린이집', title,
+      type: '어린이집', title,
       organization: [clean(r.cells[iOrg] || ''), clean(r.cells[iType] || ''), job].filter(Boolean).join(' · '),
       place: area || null, posted, deadline: toDate(r.cells[iDead] || ''), detailId: id,
       url: `https://${center}.childcare.go.kr/ccef/job/JobOfferSl.jsp?flag=Sl&JOSEQ=${id}`,

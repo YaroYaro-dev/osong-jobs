@@ -146,8 +146,8 @@ async function childcare(env: Env, center: 'chungbuk' | 'sejong') {
       const fresh = rows.filter(r => !seen.has(r.id)); if (!fresh.length) { if (page === 2) warn = '2페이지가 1페이지와 같음 · 최신 목록만 수집'; break; }
       fresh.forEach(r => seen.add(r.id)); all = all.concat(fresh);
     }
-    // 충북은 오송이 속한 흥덕구(+ 간호 공고는 청주 전체)만 보관, 세종은 전부
-    if (center === 'chungbuk') all = all.filter(j => (j.place || '').includes('흥덕구') || (j.type === '어린이집 간호' && (j.place || '').includes('청주')));
+    // 충북은 오송이 속한 흥덕구만 보관, 세종은 전부
+    if (center === 'chungbuk') all = all.filter(j => (j.place || '').includes('흥덕구'));
     all.forEach(j => { j.place = null; });   // 목록의 '구' 단위 주소는 쓰지 않고 상세 주소로 채운다
     await save(env, all, now, first);
     return { count: all.length, warn };

@@ -47,7 +47,7 @@ const cc = `<table><thead><tr><th>번호</th><th>유형</th><th>제목</th><th>�
 <tr><td>147</td><td>직장</td><td><a href="#" onclick="fnView('1259150')">간호사 모집</a></td><td>LG청주어린이집</td><td>간호사</td><td>충청북도 청주시 상당구</td><td>2026-11-30</td><td>2026-11-08</td><td>3</td></tr>
 </tbody></table>`;
 const k = parseChildcare(cc, 'chungbuk');
-eq(k.map(x => [x.id, x.type]), [['chungbuk-child:1259144', '어린이집'], ['chungbuk-child:1259150', '어린이집 간호']], 'childcare rows');
+eq(k.map(x => [x.id, x.type]), [['chungbuk-child:1259144', '어린이집'], ['chungbuk-child:1259150', '어린이집']], 'childcare rows');
 eq(tags({ ...k[0], place: null }).osong, 0, 'childcare not osong without detail address (name-only never counts)');
 const addr = childcareAddress('<table><tr><th>소재지</th><td>충청북도 청주시 흥덕구 오송읍 오송생명14로 217</td></tr></table>');
 eq(addr?.includes('오송읍'), true, 'detail address parsed');

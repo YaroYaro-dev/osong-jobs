@@ -74,7 +74,6 @@ input[type=search]{flex:1;min-width:200px}
         <button class="chip on" data-type="all">전체 기관</button>
         <button class="chip" data-type="유치원">유치원</button>
         <button class="chip" data-type="어린이집">어린이집</button>
-        <button class="chip" data-type="어린이집 간호">어린이집 간호(조무)사</button>
       </div>
       <div class="row">
         <input type="search" id="q" placeholder="공고 제목이나 기관명으로 검색">
@@ -131,7 +130,7 @@ function inTab(j, tab) {
 function filtered() {
   return DATA.jobs.filter(function (j) {
     if (!inTab(j, st.tab)) return false;
-    if (st.type !== 'all' && j.type !== st.type) return false;
+    if (st.type !== 'all' && j.type.indexOf(st.type) !== 0) return false;
     var d = dday(j.deadline);
     if (st.status === 'open' && d.open === false) return false;
     if (st.status === 'saved' && !saved[j.id]) return false;
@@ -168,8 +167,8 @@ function render() {
   var newCut = new Date(Date.now() - 2 * 864e5).toISOString();
   document.getElementById('list').innerHTML = rows.length ? rows.map(function (j) {
     var d = dday(j.deadline);
-    var tcls = j.type === '유치원' ? 'k' : j.type === '어린이집 간호' ? 'n' : 'd';
-    var tags = '<span class="tag">' + esc(j.region) + '</span><span class="tag ' + tcls + '">' + esc(j.type) + '</span>' +
+    var tcls = j.type === '유치원' ? 'k' : 'd';
+    var tags = '<span class="tag">' + esc(j.region) + '</span><span class="tag ' + tcls + '">' + (j.type === '유치원' ? '유치원' : '어린이집') + '</span>' +
       (j.osong ? '<span class="tag o">오송</span>' : '') + (j.jochiwon ? '<span class="tag o">조치원</span>' : '') +
       ((j.first_seen || '') > newCut ? '<span class="tag new">NEW</span>' : '');
     return '<div class="job' + (d.open === false ? ' closed' : '') + '"><div><div class="tags">' + tags + '</div>' +
