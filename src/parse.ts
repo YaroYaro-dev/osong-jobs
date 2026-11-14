@@ -3,7 +3,7 @@
 export type Job = {
   id: string;            // 출처:게시물번호
   source: string;        // 출처 id
-  region: '충북' | '세종';
+  region: '충북' | '세종' | '충남';
   type: '유치원' | '어린이집' | '어린이집 간호';
   title: string;
   organization: string;
@@ -130,7 +130,7 @@ export function parseCbeMpool(html: string): Job[] {
 
 // ───────── 육아종합지원센터 인력뱅크 (충북·세종 공통) ─────────
 // 열: 번호 | 유형 | 제목 | 어린이집명 | 직종 | 소재지 | 마감일 | 작성일 | 조회
-export function parseChildcare(html: string, center: 'chungbuk' | 'sejong'): Job[] {
+export function parseChildcare(html: string, center: 'chungbuk' | 'sejong' | 'chungnam'): Job[] {
   const t = readTable(html, ['제목', '소재지']); if (!t) return [];
   const iType = t.col('유형'), iTitle = t.col('제목'), iOrg = t.col('어린이집'), iJob = t.col('직종'),
     iPlace = t.col('소재지'), iDead = t.col('마감'), iPosted = t.col('작성일', '등록일');
@@ -141,7 +141,7 @@ export function parseChildcare(html: string, center: 'chungbuk' | 'sejong'): Job
     const job = clean(r.cells[iJob] || '');
     const area = clean(r.cells[iPlace] || '');
     out.push({
-      id: `${center}-child:${id}`, source: `${center}-child`, region: center === 'sejong' ? '세종' : '충북',
+      id: `${center}-child:${id}`, source: `${center}-child`, region: center === 'sejong' ? '세종' : center === 'chungnam' ? '충남' : '충북',
       type: '어린이집', title,
       organization: [clean(r.cells[iOrg] || ''), clean(r.cells[iType] || ''), job].filter(Boolean).join(' · '),
       place: area || null, posted, deadline: toDate(r.cells[iDead] || ''), detailId: id,
@@ -154,7 +154,7 @@ export function parseChildcare(html: string, center: 'chungbuk' | 'sejong'): Job
 /** 어린이집 상세 페이지에서 소재지(주소) 한 줄 뽑기 */
 export function childcareAddress(html: string): string | null {
   const text = clean(html);
-  const m = text.match(/(충청북도|충북|세종특별자치시|세종)\s[^|]{2,60}?(읍|면|동|로|길)\s?[^\s|]{0,20}/);
+  const m = text.match(/(충청북도|충북|충청남도|충남|세종특별자치시|세종)\s[^|]{2,60}?(읍|면|동|로|길)\s?[^\s|]{0,20}/);
   if (!m) return null;
   // 주소 뒤에 붙는 다음 칸 이름(담당자명, 전화번호 등)은 잘라낸다
   return m[0].replace(/\s*(담당자명?|전화번호?|연락처|시설장|팩스|이메일|홈페이지)[\s\S]*$/, '').trim() || null;
@@ -163,14 +163,14 @@ export function childcareAddress(html: string): string | null {
 /** '(30091) 세종특별자치시 산울7로 11 707동108호' → '세종특별자치시 산울7로 11' (도로명+건물번호까지만) */
 export function fullAddress(html: string): string | null {
   const text = clean(html);
-  const m = text.match(/\(\d{5}\)\s*((?:충청북도|충북|세종특별자치시|세종)[^|()]{2,60}?[가-힣0-9]+(?:로|길)\s?\d+(?:-\d+)?)/)
-    || text.match(/((?:충청북도|충북|세종특별자치시)\s[^|()]{2,60}?[가-힣0-9]+(?:로|길)\s?\d+(?:-\d+)?)/);
+  const m = text.match(/\(\d{5}\)\s*((?:충청북도|충북|충청남도|충남|세종특별자치시|세종)[^|()]{2,60}?[가-힣0-9]+(?:로|길)\s?\d+(?:-\d+)?)/)
+    || text.match(/((?:충청북도|충북|충청남도|충남|세종특별자치시)\s[^|()]{2,60}?[가-힣0-9]+(?:로|길)\s?\d+(?:-\d+)?)/);
   return m ? m[1].replace(/\s+/g, ' ').trim() : null;
 }
 
 /** 공고 상세에서 어린이집 정보공개포털 코드 찾기 (STCODE_POP=36110000441 등) */
 export function childcareCode(html: string): string | null {
-  const m = html.match(/STCODE(?:_POP)?\s*(?:=|:|,|\(|'|")\s*['"]?(\d{11})/i) || html.match(/['"((,\s]((?:43|36)\d{9})['"),\s]/);
+  const m = html.match(/STCODE(?:_POP)?\s*(?:=|:|,|\(|'|")\s*['"]?(\d{11})/i) || html.match(/['"((,\s]((?:43|44|36)\d{9})['"),\s]/);
   return m ? m[1] : null;
 }
 

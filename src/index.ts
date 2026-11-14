@@ -5,7 +5,9 @@ import { geoKey, geocodePending, lookup, ensureGeoTable, GeoRow } from './geo';
 export default {
   // 정해진 시간에 자동 수집
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext) {
-    const group = CRON_TO_GROUP[event.cron];
+    let group = CRON_TO_GROUP[event.cron];
+    // 어린이집 크론은 하루 두 번: 한국 10:27 충북, 22:27 충남 (무료 요금제 크론 5개 제한)
+    if (group === 'childcare_cb' && new Date(event.scheduledTime).getUTCHours() === 13) group = 'childcare_cn';
     if (group) ctx.waitUntil(GROUPS[group](env));
   },
 

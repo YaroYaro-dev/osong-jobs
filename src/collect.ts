@@ -137,20 +137,21 @@ async function cbeMpool(env: Env, maxPages = 3, backfill = false) {
   });
 }
 
-async function childcare(env: Env, center: 'chungbuk' | 'sejong') {
+const CHILD_NAME = { chungbuk: '충북육아종합지원센터 어린이집 구인', sejong: '세종육아종합지원센터 어린이집 구인', chungnam: '충남육아종합지원센터 어린이집 구인' };
+async function childcare(env: Env, center: 'chungbuk' | 'sejong' | 'chungnam') {
   const id = `${center}-child`;
-  await run(env, id, center === 'sejong' ? '세종육아종합지원센터 어린이집 구인' : '충북육아종합지원센터 어린이집 구인', async (first, now) => {
+  await run(env, id, CHILD_NAME[center], async (first, now) => {
     const base = `https://${center}.childcare.go.kr/ccef/job/JobOfferSlPL.jsp?flag=SlPL`;
     let all: Job[] = []; const seen = new Set<string>(); let warn: string | null = null;
-    for (let page = 1; page <= 3; page++) {
+    const maxPages = center === 'sejong' ? 3 : 5;   // 충북·충남은 도 전체라 글이 많다
+    for (let page = 1; page <= maxPages; page++) {
       const rows = parseChildcare(await getRetry(page === 1 ? base : `${base}&offset=${(page - 1) * 10}&pageIndex=${page}`), center);
       if (!rows.length) { if (page === 1) throw new Error('공고 목록을 읽지 못함 · 게시판 구조 확인 필요'); break; }
       const fresh = rows.filter(r => !seen.has(r.id)); if (!fresh.length) { if (page === 2) warn = '2페이지가 1페이지와 같음 · 최신 목록만 수집'; break; }
       fresh.forEach(r => seen.add(r.id)); all = all.concat(fresh);
     }
-    // 충북은 오송이 속한 흥덕구만 보관, 세종은 전부
-    if (center === 'chungbuk') all = all.filter(j => (j.place || '').includes('흥덕구'));
-    all.forEach(j => { j.place = null; });   // 목록의 '구' 단위 주소는 쓰지 않고 상세 주소로 채운다
+    // 충북·충남·세종 모두 전체 보관 (지역 버튼·검색으로 골라 보기)
+    if (center !== 'chungnam') all.forEach(j => { j.place = null; });   // 충남은 '천안시 서북구' 같은 목록 주소를 천안 버튼용으로 먼저 둔다   // 목록의 '구' 단위 주소는 쓰지 않고 상세 주소로 채운다
     await save(env, all, now, first);
     return { count: all.length, warn };
   });
@@ -250,6 +251,7 @@ export const GROUPS: Record<string, (env: Env) => Promise<void>> = {
   // 하루 3번: 교육청 게시판은 한 번에 최신 10건만 보여서 자주 본다
   edu: async env => { await cbeBoard(env); await cbeMpool(env); await fillDetails(env, 15); await notify(env); await geocodePending(env, 8); },
   childcare_cb: async env => { await childcare(env, 'chungbuk'); await fillDetails(env, 15); await notify(env); await fillChildcareAddress(env, 6); await geocodePending(env, 6); },
+  childcare_cn: async env => { await childcare(env, 'chungnam'); await fillDetails(env, 15); await fillChildcareAddress(env, 6); await geocodePending(env, 6); },
   childcare_sj: async env => { await childcare(env, 'sejong'); await fillDetails(env, 15); await fillChildcareAddress(env, 6); await geocodePending(env, 6); },
   schools_1: async env => { await sejongSchools(env, 1); },
   schools_2: async env => { await sejongSchools(env, 2); await sssc(env); await fillDetails(env, 15); },
@@ -263,7 +265,7 @@ export const GROUPS: Record<string, (env: Env) => Promise<void>> = {
 // wrangler.toml의 crons 순서와 맞춘다 (UTC 기준)
 export const CRON_TO_GROUP: Record<string, string> = {
   '7 1,5,9 * * *': 'edu',           // 한국 10:07, 14:07, 18:07
-  '27 1 * * *': 'childcare_cb',     // 10:27
+  '27 1,13 * * *': 'childcare_cb',     // 10:27
   '37 1 * * *': 'childcare_sj',     // 10:37
   '47 1 * * *': 'schools_1',        // 10:47
   '57 1 * * *': 'schools_2',        // 10:57

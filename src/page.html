@@ -154,12 +154,12 @@ button,input,select{font:inherit;color:inherit}
 <script>
 var DATA = { jobs: [], states: [] };
 var st = { tab: 'all', type: 'all', q: '', open: true, savedOnly: false, sort: 'posted', dir: 'desc', basis: 'posted', from: '', to: '' };
-var TABS = [['all','전체 지역'],['osong','오송'],['충북','충북'],['세종','세종'],['jochiwon','조치원']];
+var TABS = [['all','전체 지역'],['osong','오송'],['충북','충북'],['세종','세종'],['jochiwon','조치원'],['충남','충남'],['cheonan','천안']];
 var NOTES = {
   osong: '오송 공고: 어린이집은 상세 소재지가 오송읍으로 확인된 것, 교육청 공고는 주소를 확인해 둔 오송 기관(오송유치원·오송솔미유치원·오송솔미초·솔강초 병설 등)의 것만 보여요.',
   jochiwon: '조치원 공고: 어린이집 상세 소재지나 기관 주소가 조치원읍으로 확인된 것만 보여요. 통합 모집은 넣지 않아요.'
 };
-var SRC = { cbe: '충북교육청', mpool: '기간제 인력풀', 'chungbuk-child': '충북육아종합', 'sejong-child': '세종육아종합', 'sejong-school': '유치원 홈페이지', sssc: '학교지원본부' };
+var SRC = { cbe: '충북교육청', mpool: '기간제 인력풀', 'chungbuk-child': '충북육아종합', 'sejong-child': '세종육아종합', 'chungnam-child': '충남육아종합', 'sejong-school': '유치원 홈페이지', sssc: '학교지원본부' };
 var me = null;   // {lat,lng,label}
 try { me = JSON.parse(localStorage.getItem('osong-me') || 'null'); } catch (e) {}
 st.radius = 0;
@@ -197,6 +197,7 @@ function inTab(j, tab) {
   if (tab === 'all') return true;
   if (tab === 'osong') return j.osong === 1;
   if (tab === 'jochiwon') return j.jochiwon === 1;
+  if (tab === 'cheonan') return /천안/.test((j.place || '') + ' ' + j.organization + ' ' + j.title);
   return j.region === tab;
 }
 function filtered() {
@@ -268,7 +269,7 @@ function render() {
     }
     var org = parts[0];
     var metaBits = parts.slice(1);
-    var loc = addr(j.place) || (j.region === '세종' ? '세종특별자치시' : '충청북도');
+    var loc = addr(j.place) || (j.region === '세종' ? '세종특별자치시' : j.region === '충남' ? '충청남도' : '충청북도');
     var dk = km(j);
     var chips =
       (dk != null ? '<span class="chip km"' + (j.approx ? ' title="정확한 위치를 못 찾아 동네 중심 기준으로 계산했어요"' : '') + '>📍 ' + (j.approx ? '약 ' : '') + kmText(dk) + '</span>' : '') +

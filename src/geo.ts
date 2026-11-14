@@ -35,7 +35,7 @@ export function geoKey(j: { source: string; region: string; title: string; organ
   // 공고에 동네(읍·면·동)가 적혀 있으면 같이 넣어, 같은 이름의 다른 지역 기관과 헷갈리지 않게 한다
   const area = (place.match(/[가-힣][가-힣0-9]*(읍|면|동)(?=\s|$)/g) || []).pop();
   if (area && CHILD_ADDR[`${org}@${area}`]) return `addr:${CHILD_ADDR[`${org}@${area}`]}`;
-  return `name:${j.region === '세종' ? '세종' : '충북'} ${org}${area ? '@' + area : ''}`;
+  return `name:${j.region === '세종' ? '세종' : j.region === '충남' ? '충남' : '충북'} ${org}${area ? '@' + area : ''}`;
 }
 
 async function kakao(env: Env, path: string, query: string) {
@@ -59,7 +59,7 @@ export async function lookup(env: Env, key: string): Promise<{ lat: number; lng:
   const region = q.split(' ')[0];
   const name = q.slice(region.length + 1);
   const docs = [...(area ? await kakao(env, 'keyword', `${area} ${name}`) : []), ...await kakao(env, 'keyword', q)];
-  const inRegion = (d: any) => region === '세종' ? /세종/.test(d.address_name) : /(충북|충청북도)/.test(d.address_name);
+  const inRegion = (d: any) => region === '세종' ? /세종/.test(d.address_name) : region === '충남' ? /(충남|충청남도)/.test(d.address_name) : /(충북|충청북도)/.test(d.address_name);
   const sameName = (d: any) => d.place_name.replace(/\s/g, '').includes(name.replace(/\s/g, ''));
   const areaWord = area?.replace(/\d+(동)$/, '');   // '복대1동'(행정동) → '복대' 로 '복대동'과도 맞게
   const inArea = (d: any) => !areaWord || `${d.address_name} ${d.road_address_name || ''}`.includes(areaWord);
