@@ -84,5 +84,6 @@ eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organiz
 eq(geoKey({ source: 'sejong-child', region: '세종', title: '담임', organization: '별나무어린이집 · 가정', place: '세종특별자치시 해밀동 해밀7로 25' }), 'addr:세종특별자치시 해밀동 해밀7로 25', 'geo: street address');
 eq(geoKey({ source: 'sssc', region: '세종', title: '유치원 강사 2차', organization: '학교지원본부', place: null }), null, 'geo: merged recruitment skipped');
 
-eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organization: '꿈채움어린이집 · 가정', place: '충청북도 청주시 흥덕구 오송읍' }), 'name:충북 꿈채움어린이집@오송읍', 'geo: 오송읍 area kept');
+eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organization: '꿈채움어린이집 · 가정', place: '충청북도 청주시 흥덕구 오송읍' }), 'addr:청주시 흥덕구 오송읍 오송생명14로 215', 'geo: 직접 확인한 어린이집 주소');
+eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organization: '오송별어린이집 · 가정', place: '충청북도 청주시 흥덕구 오송읍' }), 'name:충북 오송별어린이집@오송읍', 'geo: 오송읍 area kept');
 console.log(`✔ ${n}개 확인 통과`);

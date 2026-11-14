@@ -2,7 +2,7 @@
 // - 공고마다 '찾을 이름'을 정하고(geoKey), 한 번 찾은 결과는 geo 표에 저장해 다시 찾지 않는다.
 // - 내 위치와의 거리는 브라우저에서 계산한다 (내 위치는 서버로 보내지 않음).
 import type { Env } from './collect';
-import { OSONG_ORGS } from './places.ts';
+import { OSONG_ORGS, CHILD_ADDR } from './places.ts';
 
 export type GeoRow = { key: string; lat: number | null; lng: number | null; label: string | null; status: string };
 
@@ -34,6 +34,7 @@ export function geoKey(j: { source: string; region: string; title: string; organ
   org = org.replace(/(초등학교병설유치원|초병설유치원)$/, '초등학교').replace(/병설유치원$/, '');
   // 공고에 동네(읍·면·동)가 적혀 있으면 같이 넣어, 같은 이름의 다른 지역 기관과 헷갈리지 않게 한다
   const area = (place.match(/[가-힣][가-힣0-9]*(읍|면|동)(?=\s|$)/g) || []).pop();
+  if (area && CHILD_ADDR[`${org}@${area}`]) return `addr:${CHILD_ADDR[`${org}@${area}`]}`;
   return `name:${j.region === '세종' ? '세종' : '충북'} ${org}${area ? '@' + area : ''}`;
 }
 
@@ -47,7 +48,7 @@ async function kakao(env: Env, path: string, query: string) {
 }
 
 /** 검색어 하나를 좌표로. 지역(충북/세종)이 맞는 결과만 쓴다 */
-export async function lookup(env: Env, key: string): Promise<{ lat: number; lng: number; label: string } | null> {
+export async function lookup(env: Env, key: string): Promise<{ lat: number; lng: number; label: string; approx?: boolean } | null> {
   if (key.startsWith('addr:')) {
     const q = key.slice(5);
     const docs = await kakao(env, 'address', q);
@@ -65,11 +66,17 @@ export async function lookup(env: Env, key: string): Promise<{ lat: number; lng:
   const pick = docs.find(d => inRegion(d) && inArea(d) && sameName(d))
     || (area ? null : docs.find(d => inRegion(d) && sameName(d)))      // 동네가 적혀 있는데 거기 없으면 다른 동네 것은 쓰지 않음
     || (area ? null : docs.find(d => inRegion(d) && /(유치원|어린이집|초등학교)/.test(d.category_name || '')));
+  if (!pick && area) {                           // 지도에 없는 기관(아파트 안 가정어린이집 등) → 동네 중심으로 대략
+    const a = (await kakao(env, 'address', `${region} ${area}`)).find(inRegion);
+    if (a) return { lat: +a.y, lng: +a.x, label: a.address_name, approx: true };
+  }
   return pick ? { lat: +pick.y, lng: +pick.x, label: pick.road_address_name || pick.address_name } : null;
 }
 
 export async function ensureGeoTable(env: Env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS geo (key TEXT PRIMARY KEY, lat REAL, lng REAL, label TEXT, status TEXT NOT NULL, checked TEXT NOT NULL)`).run();
+  // 동네 기준 대략 위치가 생기기 전에 '못 찾음'으로 남은 것은 한 번 더 찾아 본다
+  await env.DB.prepare(`DELETE FROM geo WHERE status='notfound' AND checked < '2026-11-14T04:30:00Z'`).run();
 }
 
 /** 아직 좌표가 없는 기관을 budget개까지 찾아서 저장 */
@@ -91,7 +98,7 @@ export async function geocodePending(env: Env, budget = 15) {
     try {
       const g = await lookup(env, k);
       rows.push(env.DB.prepare(`INSERT OR REPLACE INTO geo (key,lat,lng,label,status,checked) VALUES (?,?,?,?,?,?)`)
-        .bind(k, g?.lat ?? null, g?.lng ?? null, g?.label ?? null, g ? 'ok' : 'notfound', now));
+        .bind(k, g?.lat ?? null, g?.lng ?? null, g?.label ?? null, g ? (g.approx ? 'area' : 'ok') : 'notfound', now));
     } catch (e) {
       if (e instanceof Error && /키 오류/.test(e.message)) {           // 키 문제면 수집 현황에 남기고 멈춤
         await env.DB.prepare(`INSERT INTO source_states (id,name,attempted,succeeded,error,count) VALUES ('geo','기관 위치 찾기 (카카오)',?,NULL,?,0)
@@ -101,8 +108,8 @@ export async function geocodePending(env: Env, budget = 15) {
     }
   }
   if (rows.length) await env.DB.batch(rows);
-  const total = await env.DB.prepare(`SELECT COUNT(*) AS n FROM geo WHERE status='ok'`).first<{ n: number }>();
-  const miss = await env.DB.prepare(`SELECT COUNT(*) AS n FROM geo WHERE status<>'ok'`).first<{ n: number }>();
+  const total = await env.DB.prepare(`SELECT COUNT(*) AS n FROM geo WHERE status IN ('ok','area')`).first<{ n: number }>();
+  const miss = await env.DB.prepare(`SELECT COUNT(*) AS n FROM geo WHERE status='notfound'`).first<{ n: number }>();
   
   if (rows.length) {
     await env.DB.prepare(`INSERT INTO source_states (id,name,attempted,succeeded,error,count) VALUES ('geo','기관 위치 찾기 (카카오)',?,?,NULL,?)

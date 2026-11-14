@@ -32,3 +32,8 @@ export function tags(j: { title: string; organization: string; place: string | n
     address: osongOrg?.address ?? null,     // 화면 표시용 기관 주소
   };
 }
+
+/** 지도 검색으로 안 잡히는 어린이집(아파트 안 가정어린이집 등) — 직접 확인한 주소 */
+export const CHILD_ADDR: Record<string, string> = {
+  '꿈채움어린이집@오송읍': '청주시 흥덕구 오송읍 오송생명14로 215',   // 동아라이크텐아파트 103동 (정보공개포털)
+};

@@ -271,7 +271,7 @@ function render() {
     var loc = addr(j.place) || (j.region === '세종' ? '세종특별자치시' : '충청북도');
     var dk = km(j);
     var chips =
-      (dk != null ? '<span class="chip km">📍 ' + kmText(dk) + '</span>' : '') +
+      (dk != null ? '<span class="chip km"' + (j.approx ? ' title="정확한 위치를 못 찾아 동네 중심 기준으로 계산했어요"' : '') + '>📍 ' + (j.approx ? '약 ' : '') + kmText(dk) + '</span>' : '') +
       (j.deadline ? '<span class="chip ' + (d.open === false ? 'end' : 'dl') + '">~' + md(j.deadline) + '</span>' : '') +
       '<span class="chip ' + (d.cls || 'dl') + '">' + d.txt + '</span>' +
       (j.osong ? '<span class="chip o">오송</span>' : '') + (j.jochiwon ? '<span class="chip o">조치원</span>' : '') +
