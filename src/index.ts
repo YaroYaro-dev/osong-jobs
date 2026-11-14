@@ -1,4 +1,4 @@
-import { Env, GROUPS, CRON_TO_GROUP } from './collect';
+import { Env, GROUPS, CRON_TO_GROUP, fillChildcareAddress } from './collect';
 import PAGE from './page.html';
 import { geoKey, geocodePending, lookup, ensureGeoTable, GeoRow } from './geo';
 
@@ -17,7 +17,7 @@ export default {
     }
 
     if (url.pathname === '/api/jobs') {
-      const jobs = await env.DB.prepare(`SELECT id,source,region,type,title,organization,place,osong,jochiwon,posted,deadline,url,first_seen
+      const jobs = await env.DB.prepare(`SELECT *
         FROM jobs WHERE posted >= date('now','-180 days') ORDER BY posted DESC, first_seen DESC LIMIT 2000`).all();
       const states = await env.DB.prepare('SELECT * FROM source_states ORDER BY id').all();
       // 기관 좌표 붙이기
@@ -31,7 +31,11 @@ export default {
         return g && g.lat != null ? { ...j, lat: g.lat, lng: g.lng, approx: g.status === 'area' ? 1 : undefined } : j;
       });
       // 아직 위치를 모르는 기관이 있으면, 페이지를 연 김에 뒤에서 조금씩 찾아 둔다 (다음 새로고침부터 거리 표시)
-      if (missing && env.KAKAO_REST_KEY) ctx.waitUntil(geocodePending(env, 20).catch(() => {}));
+      const needAddr = (jobs.results as any[]).some(j => j.source.endsWith('-child') && !/(로|길)\s?\d/.test(j.place || '') && !j.addr_checked);
+      if ((missing || needAddr) && env.KAKAO_REST_KEY) ctx.waitUntil((async () => {
+        await fillChildcareAddress(env, 6).catch(() => {});
+        await geocodePending(env, 12).catch(() => {});
+      })());
       return Response.json({ jobs: list, states: states.results }, { headers: { 'cache-control': 'no-store' } });
     }
 

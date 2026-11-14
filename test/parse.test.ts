@@ -1,6 +1,7 @@
 // 실제 사이트 없이 파서·지역 분류를 확인. 실행: npm test
 import { parseCbeBoard, parseCbeMpool, parseChildcare, childcareAddress, parseSchoolFeed, parseSssc, deadlineFromText, toDate } from '../src/parse.ts';
 import { tags } from '../src/places.ts';
+import { fullAddress, childcareCode } from '../src/parse.ts';
 import { geoKey } from '../src/geo.ts';
 
 let n = 0;
@@ -86,4 +87,9 @@ eq(geoKey({ source: 'sssc', region: '세종', title: '유치원 강사 2차', or
 
 eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organization: '꿈채움어린이집 · 가정', place: '충청북도 청주시 흥덕구 오송읍' }), 'addr:청주시 흥덕구 오송읍 오송생명14로 215', 'geo: 직접 확인한 어린이집 주소');
 eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organization: '오송별어린이집 · 가정', place: '충청북도 청주시 흥덕구 오송읍' }), 'name:충북 오송별어린이집@오송읍', 'geo: 오송읍 area kept');
+eq(fullAddress('<th>주소</th><td>(30091) 세종특별자치시 산울7로 11 707동108호</td>'), '세종특별자치시 산울7로 11', 'full address from portal');
+eq(fullAddress('<td>(28221) 충청북도 청주시 흥덕구 오송읍 오송생명14로 215 103동 103호 동아라이크텐아파트</td>'), '충청북도 청주시 흥덕구 오송읍 오송생명14로 215', 'full address 오송');
+eq(fullAddress('<td>충청북도 청주시 흥덕구 오송읍</td>'), null, 'no street → null');
+eq(childcareCode('<a href="javascript:fnPopup(\'36110000441\')">'), '36110000441', 'portal code in onclick');
+eq(childcareCode('SummaryInfoSlPu.jsp?flag=YJ&STCODE_POP=43113000123'), '43113000123', 'portal code in url');
 console.log(`✔ ${n}개 확인 통과`);

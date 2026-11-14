@@ -1,7 +1,7 @@
 import feeds from './sejong-feeds.json';
 import {
   Job, parseCbeBoard, parseCbeMpool, parseChildcare, childcareAddress,
-  parseSchoolFeed, parseSssc, deadlineFromText, pageIds,
+  parseSchoolFeed, parseSssc, deadlineFromText, pageIds, fullAddress, childcareCode,
 } from './parse';
 import { tags } from './places';
 import { geocodePending } from './geo';
@@ -201,6 +201,32 @@ async function fillDetails(env: Env, budget = DETAIL_BUDGET) {
   if (updates.length) await env.DB.batch(updates);
 }
 
+/**
+ * 어린이집 상세 주소 채우기: 공고에 '오송읍'처럼 동네까지만 있으면
+ * 공고 본문 → 없으면 어린이집 정보공개포털 요약 페이지에서 도로명 주소를 가져온다. (거리 계산용)
+ */
+export async function fillChildcareAddress(env: Env, budget = 5) {
+  try { await env.DB.prepare(`ALTER TABLE jobs ADD COLUMN addr_checked INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* 이미 있음 */ }
+  const res = await env.DB.prepare(`SELECT id, url, place FROM jobs
+      WHERE source LIKE '%-child' AND addr_checked=0 AND posted >= date('now','-120 days')
+      ORDER BY osong DESC, jochiwon DESC, posted DESC LIMIT 300`).all<{ id: string; url: string; place: string | null }>();
+  const STREET = /(로|길)\s?\d/;
+  const todo = res.results.filter(j => !STREET.test(j.place || '')).slice(0, budget);
+  const done = res.results.filter(j => STREET.test(j.place || ''));
+  const updates: D1PreparedStatement[] = done.slice(0, 50).map(j => env.DB.prepare(`UPDATE jobs SET addr_checked=1 WHERE id=?`).bind(j.id));
+  for (const j of todo) {
+    let addr: string | null = null;
+    try {
+      const html = await get(j.url);
+      addr = fullAddress(html);
+      const code = addr ? null : childcareCode(html);
+      if (code) addr = fullAddress(await get(`https://info.childcare.go.kr/info_html5/pnis/search/preview/SummaryInfoSlPu.jsp?flag=YJ&STCODE_POP=${code}`));
+    } catch { continue; }   // 다음에 다시
+    updates.push(env.DB.prepare(`UPDATE jobs SET addr_checked=1, place=COALESCE(?, place) WHERE id=?`).bind(addr, j.id));
+  }
+  if (updates.length) await env.DB.batch(updates);
+}
+
 /** 새 오송 공고 이메일 알림 (설정했을 때만) */
 async function notify(env: Env) {
   if (!env.RESEND_API_KEY || !env.NOTIFY_TO) return;
@@ -223,15 +249,15 @@ async function notify(env: Env) {
 export const GROUPS: Record<string, (env: Env) => Promise<void>> = {
   // 하루 3번: 교육청 게시판은 한 번에 최신 10건만 보여서 자주 본다
   edu: async env => { await cbeBoard(env); await cbeMpool(env); await fillDetails(env, 15); await notify(env); await geocodePending(env, 8); },
-  childcare_cb: async env => { await childcare(env, 'chungbuk'); await fillDetails(env, 15); await notify(env); await geocodePending(env, 8); },
-  childcare_sj: async env => { await childcare(env, 'sejong'); await fillDetails(env, 15); await geocodePending(env, 8); },
+  childcare_cb: async env => { await childcare(env, 'chungbuk'); await fillDetails(env, 15); await notify(env); await fillChildcareAddress(env, 6); await geocodePending(env, 6); },
+  childcare_sj: async env => { await childcare(env, 'sejong'); await fillDetails(env, 15); await fillChildcareAddress(env, 6); await geocodePending(env, 6); },
   schools_1: async env => { await sejongSchools(env, 1); },
   schools_2: async env => { await sejongSchools(env, 2); await sssc(env); await fillDetails(env, 15); },
   // 한 번만 수동 실행: 이미 뒤로 밀려난 공고 채우기 (무료 요금제 요청 한도 안에서 약 40페이지 = 400건)
   backfill_cbe: async env => { await cbeBoard(env, 40, true); },
   backfill_mpool: async env => { await cbeMpool(env, 40, true); },
   // 기관 위치를 한꺼번에 채우기 (수동, 실행당 20곳 · 무료 요금제 요청 한도)
-  geo: async env => { await geocodePending(env, 20); },
+  geo: async env => { await fillChildcareAddress(env, 8); await geocodePending(env, 15); },
 };
 
 // wrangler.toml의 crons 순서와 맞춘다 (UTC 기준)

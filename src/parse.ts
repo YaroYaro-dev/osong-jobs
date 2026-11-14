@@ -160,6 +160,20 @@ export function childcareAddress(html: string): string | null {
   return m[0].replace(/\s*(담당자명?|전화번호?|연락처|시설장|팩스|이메일|홈페이지)[\s\S]*$/, '').trim() || null;
 }
 
+/** '(30091) 세종특별자치시 산울7로 11 707동108호' → '세종특별자치시 산울7로 11' (도로명+건물번호까지만) */
+export function fullAddress(html: string): string | null {
+  const text = clean(html);
+  const m = text.match(/\(\d{5}\)\s*((?:충청북도|충북|세종특별자치시|세종)[^|()]{2,60}?[가-힣0-9]+(?:로|길)\s?\d+(?:-\d+)?)/)
+    || text.match(/((?:충청북도|충북|세종특별자치시)\s[^|()]{2,60}?[가-힣0-9]+(?:로|길)\s?\d+(?:-\d+)?)/);
+  return m ? m[1].replace(/\s+/g, ' ').trim() : null;
+}
+
+/** 공고 상세에서 어린이집 정보공개포털 코드 찾기 (STCODE_POP=36110000441 등) */
+export function childcareCode(html: string): string | null {
+  const m = html.match(/STCODE(?:_POP)?\s*(?:=|:|,|\(|'|")\s*['"]?(\d{11})/i) || html.match(/['"((,\s]((?:43|36)\d{9})['"),\s]/);
+  return m ? m[1] : null;
+}
+
 // ───────── 세종 유치원·학교 홈페이지 게시판 ─────────
 const JOB_WORDS = /(채용|위촉|구인|강사.{0,15}모집|교사.{0,15}모집|기간제|대체인력)/;
 const NOT_JOB = /(합격|결과|면접\s*대상|모집요강|유아\s*모집|원아\s*모집|입학|신입생)/;
