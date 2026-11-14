@@ -80,8 +80,9 @@ eq([tags(sp[0]).osong, tags(sp[0]).jochiwon], [0, 0], 'sssc merged recruitment n
 eq(geoKey({ source: 'cbe', region: '충북', title: '오송솔미초등학교병설유치원 겨울방학 강사(1차)', organization: '오송솔미초등학교', place: null }), 'addr:청주시 흥덕구 오송읍 오송생명12로 83', 'geo: known osong org → address');
 eq(geoKey({ source: 'cbe', region: '충북', title: '2026학년도 비봉유치원 학년말 방학 중 강사 채용', organization: '비봉유치원', place: null }), 'name:충북 비봉유치원', 'geo: org name');
 eq(geoKey({ source: 'mpool', region: '충북', title: '2026. 가경초등학교병설유치원 기간제교사 채용', organization: '청주 · 김선희', place: null }), 'name:충북 가경초등학교', 'geo: mpool person writer → title, 병설 → 초등학교');
-eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organization: '하트리움어린이집 · 민간 · 보조교사', place: '충청북도 청주시 흥덕구 복대1동 담당자명' }), 'name:충북 하트리움어린이집', 'geo: childcare without street address → name');
+eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organization: '하트리움어린이집 · 민간 · 보조교사', place: '충청북도 청주시 흥덕구 복대1동 담당자명' }), 'name:충북 하트리움어린이집@복대1동', 'geo: childcare without street address → name');
 eq(geoKey({ source: 'sejong-child', region: '세종', title: '담임', organization: '별나무어린이집 · 가정', place: '세종특별자치시 해밀동 해밀7로 25' }), 'addr:세종특별자치시 해밀동 해밀7로 25', 'geo: street address');
 eq(geoKey({ source: 'sssc', region: '세종', title: '유치원 강사 2차', organization: '학교지원본부', place: null }), null, 'geo: merged recruitment skipped');
 
+eq(geoKey({ source: 'chungbuk-child', region: '충북', title: '담임', organization: '꿈채움어린이집 · 가정', place: '충청북도 청주시 흥덕구 오송읍' }), 'name:충북 꿈채움어린이집@오송읍', 'geo: 오송읍 area kept');
 console.log(`✔ ${n}개 확인 통과`);

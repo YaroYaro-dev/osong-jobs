@@ -32,7 +32,9 @@ export function geoKey(j: { source: string; region: string; title: string; organ
   if (!org) return null;
   // '병설유치원'은 지도에 학교 이름으로 올라가 있는 경우가 많다
   org = org.replace(/(초등학교병설유치원|초병설유치원)$/, '초등학교').replace(/병설유치원$/, '');
-  return `name:${j.region === '세종' ? '세종' : '충북'} ${org}`;
+  // 공고에 동네(읍·면·동)가 적혀 있으면 같이 넣어, 같은 이름의 다른 지역 기관과 헷갈리지 않게 한다
+  const area = (place.match(/[가-힣][가-힣0-9]*(읍|면|동)(?=\s|$)/g) || []).pop();
+  return `name:${j.region === '세종' ? '세종' : '충북'} ${org}${area ? '@' + area : ''}`;
 }
 
 async function kakao(env: Env, path: string, query: string) {
@@ -52,13 +54,17 @@ export async function lookup(env: Env, key: string): Promise<{ lat: number; lng:
     const d = docs[0] || (await kakao(env, 'keyword', q))[0];
     return d ? { lat: +d.y, lng: +d.x, label: d.road_address?.address_name || d.address_name || d.place_name || q } : null;
   }
-  const q = key.slice(5);                        // '충북 오송솔미유치원'
+  const [q, area] = key.slice(5).split('@');     // '충북 꿈채움어린이집', '오송읍'
   const region = q.split(' ')[0];
   const name = q.slice(region.length + 1);
-  const docs = await kakao(env, 'keyword', q);
+  const docs = [...(area ? await kakao(env, 'keyword', `${area} ${name}`) : []), ...await kakao(env, 'keyword', q)];
   const inRegion = (d: any) => region === '세종' ? /세종/.test(d.address_name) : /(충북|충청북도)/.test(d.address_name);
-  const pick = docs.find(d => inRegion(d) && d.place_name.replace(/\s/g, '').includes(name.replace(/\s/g, '')))
-    || docs.find(d => inRegion(d) && /(유치원|어린이집|초등학교)/.test(d.category_name || ''));
+  const sameName = (d: any) => d.place_name.replace(/\s/g, '').includes(name.replace(/\s/g, ''));
+  const areaWord = area?.replace(/\d+(동)$/, '');   // '복대1동'(행정동) → '복대' 로 '복대동'과도 맞게
+  const inArea = (d: any) => !areaWord || `${d.address_name} ${d.road_address_name || ''}`.includes(areaWord);
+  const pick = docs.find(d => inRegion(d) && inArea(d) && sameName(d))
+    || (area ? null : docs.find(d => inRegion(d) && sameName(d)))      // 동네가 적혀 있는데 거기 없으면 다른 동네 것은 쓰지 않음
+    || (area ? null : docs.find(d => inRegion(d) && /(유치원|어린이집|초등학교)/.test(d.category_name || '')));
   return pick ? { lat: +pick.y, lng: +pick.x, label: pick.road_address_name || pick.address_name } : null;
 }
 
