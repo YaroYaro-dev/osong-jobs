@@ -26,6 +26,12 @@ Cloudflare Workers가 정해진 시간마다 게시판을 읽고, D1 데이터�
 
 ---
 
+## 자동 배포 (GitHub 연결됨)
+
+이 저장소의 `main` 브랜치에 커밋이 올라가면 Cloudflare Workers Builds가 자동으로 `npx wrangler deploy`를 실행합니다.
+진행 상황은 Cloudflare 대시보드 → osong-jobs → Deployments에서 볼 수 있습니다.
+비밀값(ADMIN_TOKEN, RESEND_API_KEY 등)과 D1 데이터는 Cloudflare에 있어서 배포해도 그대로 유지됩니다.
+
 ## 처음 올리기 (Windows, 한 번만)
 
 1. **Node.js 설치:** https://nodejs.org 에서 LTS 버전을 받아 설치합니다.
