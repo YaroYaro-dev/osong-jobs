@@ -178,7 +178,9 @@ function render() {
       '<div class="date">' + esc(j.posted.replace(/-/g, '.')) + '</div>' +
       '<div class="dd"><b class="' + d.cls + '">' + d.txt + '</b>' + (j.deadline ? '<small>' + esc(j.deadline.replace(/-/g, '.')) + '</small>' : '') + '</div>' +
       '<div><button class="star' + (saved[j.id] ? ' on' : '') + '" data-save="' + esc(j.id) + '" title="관심 공고">' + (saved[j.id] ? '★' : '☆') + '</button></div></div>';
-  }).join('') : '<div class="empty">조건에 맞는 공고가 없어요.</div>';
+  }).join('') : (st.from || st.to
+      ? '<div class="empty">' + (st.basis === 'deadline' ? '마감일' : '등록일') + ' ' + (st.from || '') + ' ~ ' + (st.to || '') + ' 조건에 맞는 공고가 없어요.<br><button class="chip mini" id="emptyClear" style="margin-top:10px">기간 해제</button></div>'
+      : '<div class="empty">조건에 맞는 공고가 없어요.</div>');
 }
 function renderStates() {
   var fmt = function (s) { return s ? new Date(s).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; };
@@ -191,6 +193,7 @@ function renderStates() {
 }
 document.addEventListener('click', function (e) {
   var t = e.target.closest('[data-tab]'); if (t) { st.tab = t.dataset.tab; render(); return; }
+  if (e.target.id === 'emptyClear') { st.from = ''; st.to = ''; syncPeriod(); render(); return; }
   var hs = e.target.closest('[data-sort]');
   if (hs) {
     var k = hs.dataset.sort;
@@ -212,7 +215,7 @@ document.addEventListener('click', function (e) {
 });
 function syncPeriod() { document.getElementById('pBasis').value = st.basis; document.getElementById('pFrom').value = st.from; document.getElementById('pTo').value = st.to; }
 document.getElementById('pClear').onclick = function () { st.from = ''; st.to = ''; syncPeriod(); render(); };
-document.getElementById('pBasis').onchange = function (e) { st.basis = e.target.value; render(); };
+document.getElementById('pBasis').onchange = function (e) { st.basis = e.target.value; st.from = ''; st.to = ''; syncPeriod(); render(); };   // 기준을 바꾸면 날짜는 비운다
 document.getElementById('pFrom').onchange = function (e) { st.from = e.target.value; render(); };
 document.getElementById('pTo').onchange = function (e) { st.to = e.target.value; render(); };
 document.getElementById('q').oninput = function (e) { st.q = e.target.value.trim(); render(); };
