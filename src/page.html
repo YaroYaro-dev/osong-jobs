@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오송 유치원·어린이집 채용 공고</title>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f5ef;--card:#fff;--ink:#22302a;--muted:#6c766f;--line:#e5e0d4;--green:#3f6b4c;--green-soft:#e5efe7;--amber:#a8640f;--amber-soft:#f8ecd9;--gray:#efede8;--blue:#2c5d8f;--blue-soft:#e4edf6;--rose:#a5455a;--rose-soft:#f6e4e8;--violet:#6b3f93;--violet-soft:#efe6f7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 16px 60px}
+h1{font-family:"Gowun Dodum",sans-serif;font-size:28px;margin:0 0 4px;letter-spacing:-.5px}
+.sub{color:var(--muted);margin:0}
+.updated{display:inline-block;margin-top:10px;font-size:13px;background:var(--gray);padding:3px 10px;border-radius:999px;color:var(--muted)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-top:18px}
+.tabs{display:flex;gap:4px;padding:0 14px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{background:none;border:0;padding:14px 12px;font:inherit;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-color:var(--green)}
+.tabs .n{font-size:12px;color:var(--muted);margin-left:4px}
+.ctrl{padding:14px 16px;display:grid;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+.lbl{font-size:13px;color:var(--muted);min-width:56px}
+input,select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;color:var(--ink)}
+input[type=search]{flex:1;min-width:200px}
+.period{background:#f3f6f1;border:1px solid #dfe8dc;border-radius:12px;padding:10px 12px}
+.mini{font-size:13px;padding:5px 10px}
+.count{padding:0 16px 8px;color:var(--muted);font-size:13px}
+.list{border-top:1px solid var(--line)}
+.job{display:grid;grid-template-columns:1fr 100px 90px 40px;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.job.closed{opacity:.55}
+.job a.t{color:var(--ink);font-weight:700;text-decoration:none}
+.job a.t:hover{text-decoration:underline}
+.org{font-size:13px;color:var(--muted);margin-top:2px}
+.tags{display:flex;gap:5px;margin-bottom:4px;flex-wrap:wrap}
+.tag{font-size:11.5px;padding:1px 7px;border-radius:6px;background:var(--gray);color:var(--muted)}
+.tag.k{background:var(--blue-soft);color:var(--blue)}.tag.d{background:var(--rose-soft);color:var(--rose)}.tag.n{background:var(--violet-soft);color:var(--violet)}
+.tag.o{background:var(--green-soft);color:var(--green);font-weight:700}.tag.new{background:none;color:var(--amber);font-weight:700}
+.date{font-size:13px;color:var(--muted);text-align:center}
+.dd{text-align:center}
+.dd b{display:inline-block;font-size:13px;padding:3px 9px;border-radius:8px}
+.dd .open{background:var(--green-soft);color:var(--green)}.dd .soon{background:var(--amber-soft);color:var(--amber)}.dd .end{background:var(--gray);color:var(--muted)}.dd .unk{background:var(--gray);color:var(--muted);font-weight:500}
+.dd small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.star{background:none;border:0;cursor:pointer;font-size:20px;color:#c9c2b2}
+.star.on{color:#d39b1d}
+.head{display:grid;grid-template-columns:1fr 100px 90px 40px;gap:10px;padding:10px 16px;font-size:12.5px;color:var(--muted);background:#faf8f3;border-top:1px solid var(--line)}
+.head span:not(:first-child){text-align:center}
+.note{margin:0 16px 10px;font-size:13px;background:#f3f6f1;border-radius:10px;padding:8px 12px;color:#4b5a4f}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+.status{padding:14px 16px}
+.status h3{margin:0 0 8px;font-size:15px}
+.st{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.st:last-child{border:0}
+.st .ok{color:var(--green)}.st .bad{color:var(--rose)}
+@media (max-width:640px){.job,.head{grid-template-columns:1fr 70px 34px}.job .date,.head .hd-date{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>오송 유치원·어린이집 채용 공고</h1>
+  <p class="sub">충북·세종 유치원과 오송·세종 어린이집 공고를 매일 자동으로 모읍니다. 지원 전 원문을 꼭 확인하세요.</p>
+  <span class="updated" id="updated">불러오는 중…</span>
+
+  <div class="panel">
+    <div class="tabs" id="tabs"></div>
+    <div class="ctrl">
+      <div class="row"><span class="lbl">기관 유형</span>
+        <button class="chip on" data-type="all">전체 기관</button>
+        <button class="chip" data-type="유치원">유치원</button>
+        <button class="chip" data-type="어린이집">어린이집</button>
+        <button class="chip" data-type="어린이집 간호">어린이집 간호(조무)사</button>
+      </div>
+      <div class="row">
+        <input type="search" id="q" placeholder="공고 제목이나 기관명으로 검색">
+        <select id="status"><option value="all">모든 공고</option><option value="open" selected>접수 중·미확인</option><option value="saved">관심 공고</option></select>
+        <select id="sort"><option value="posted">최신 등록순</option><option value="deadline">마감 임박순</option></select>
+      </div>
+      <div class="period row">
+        <span class="lbl">기간</span>
+        <select id="pBasis"><option value="posted">등록일 기준</option><option value="deadline">마감일 기준</option></select>
+        <input type="date" id="pFrom"> ~ <input type="date" id="pTo">
+        <button class="chip mini" data-quick="7">최근 7일</button>
+        <button class="chip mini" data-quick="30">최근 30일</button>
+        <button class="chip mini" data-quick="future">오늘 이후 마감</button>
+        <button class="chip mini" id="pClear">기간 해제</button>
+      </div>
+    </div>
+    <p class="note" id="tabNote" hidden></p>
+    <div class="count" id="count"></div>
+    <div class="head"><span>공고 / 기관</span><span class="hd-date">등록일</span><span>마감</span><span>저장</span></div>
+    <div class="list" id="list"></div>
+  </div>
+
+  <div class="panel status" id="statusPanel"><h3>수집 현황</h3><div id="states"></div></div>
+</div>
+<script>
+var DATA = { jobs: [], states: [] };
+var st = { tab: 'all', type: 'all', q: '', status: 'open', sort: 'posted', basis: 'posted', from: '', to: '' };
+var TABS = [['all','전체 지역'],['충북','충북'],['osong','오송'],['세종','세종'],['jochiwon','조치원']];
+var NOTES = {
+  osong: '오송 공고: 어린이집은 상세 소재지가 청주시 흥덕구 오송읍으로 확인된 것, 교육청 공고는 주소를 확인해 둔 오송 기관(오송유치원·오송솔미유치원·오송솔미초병설 등)의 것만 보여요.',
+  jochiwon: '조치원 공고: 어린이집 상세 소재지나 기관 주소가 세종시 조치원읍으로 확인된 것만 보여요. 통합 모집은 넣지 않아요.'
+};
+var saved = {};
+try { saved = JSON.parse(localStorage.getItem('osong-saved') || '{}'); } catch (e) {}
+function persist() { try { localStorage.setItem('osong-saved', JSON.stringify(saved)); } catch (e) {} }
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function today() { var d = new Date(Date.now() + 9 * 3600e3); return d.toISOString().slice(0, 10); }
+function addDays(n) { var d = new Date(Date.now() + 9 * 3600e3 + n * 864e5); return d.toISOString().slice(0, 10); }
+function dday(dl) {
+  if (!dl) return { txt: '미확인', cls: 'unk', open: null };
+  var diff = Math.round((new Date(dl + 'T00:00:00+09:00') - new Date(today() + 'T00:00:00+09:00')) / 864e5);
+  if (diff < 0) return { txt: '마감', cls: 'end', open: false };
+  if (diff === 0) return { txt: '오늘 마감', cls: 'soon', open: true };
+  return { txt: 'D-' + diff, cls: diff <= 3 ? 'soon' : 'open', open: true };
+}
+function inTab(j, tab) {
+  if (tab === 'all') return true;
+  if (tab === 'osong') return j.osong === 1;
+  if (tab === 'jochiwon') return j.jochiwon === 1;
+  return j.region === tab;
+}
+function filtered() {
+  return DATA.jobs.filter(function (j) {
+    if (!inTab(j, st.tab)) return false;
+    if (st.type !== 'all' && j.type !== st.type) return false;
+    var d = dday(j.deadline);
+    if (st.status === 'open' && d.open === false) return false;
+    if (st.status === 'saved' && !saved[j.id]) return false;
+    if (st.q) { var h = (j.title + ' ' + j.organization + ' ' + (j.place || '')).toLowerCase(); if (h.indexOf(st.q.toLowerCase()) < 0) return false; }
+    var v = st.basis === 'deadline' ? j.deadline : j.posted;
+    if ((st.from || st.to) && !v) return false;
+    if (st.from && v < st.from) return false;
+    if (st.to && v > st.to) return false;
+    return true;
+  }).sort(function (a, b) {
+    if (st.sort === 'deadline') return (a.deadline || '9999').localeCompare(b.deadline || '9999');
+    return b.posted.localeCompare(a.posted) || (b.first_seen || '').localeCompare(a.first_seen || '');
+  });
+}
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = TABS.map(function (t) {
+    var n = DATA.jobs.filter(function (j) { return inTab(j, t[0]) && dday(j.deadline).open !== false; }).length;
+    return '<button data-tab="' + t[0] + '" class="' + (st.tab === t[0] ? 'on' : '') + '">' + t[1] + '<span class="n">' + n + '</span></button>';
+  }).join('');
+  var note = document.getElementById('tabNote');
+  if (NOTES[st.tab]) { note.hidden = false; note.textContent = NOTES[st.tab]; } else note.hidden = true;
+}
+function render() {
+  renderTabs();
+  var rows = filtered();
+  document.getElementById('count').textContent = rows.length + '건';
+  var newCut = new Date(Date.now() - 2 * 864e5).toISOString();
+  document.getElementById('list').innerHTML = rows.length ? rows.map(function (j) {
+    var d = dday(j.deadline);
+    var tcls = j.type === '유치원' ? 'k' : j.type === '어린이집 간호' ? 'n' : 'd';
+    var tags = '<span class="tag">' + esc(j.region) + '</span><span class="tag ' + tcls + '">' + esc(j.type) + '</span>' +
+      (j.osong ? '<span class="tag o">오송</span>' : '') + (j.jochiwon ? '<span class="tag o">조치원</span>' : '') +
+      ((j.first_seen || '') > newCut ? '<span class="tag new">NEW</span>' : '');
+    return '<div class="job' + (d.open === false ? ' closed' : '') + '"><div><div class="tags">' + tags + '</div>' +
+      '<a class="t" href="' + esc(j.url) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
+      '<div class="org">' + esc(j.organization) + (j.place ? ' · ' + esc(j.place) : '') + '</div></div>' +
+      '<div class="date">' + esc(j.posted.replace(/-/g, '.')) + '</div>' +
+      '<div class="dd"><b class="' + d.cls + '">' + d.txt + '</b>' + (j.deadline ? '<small>' + esc(j.deadline.replace(/-/g, '.')) + '</small>' : '') + '</div>' +
+      '<div><button class="star' + (saved[j.id] ? ' on' : '') + '" data-save="' + esc(j.id) + '" title="관심 공고">' + (saved[j.id] ? '★' : '☆') + '</button></div></div>';
+  }).join('') : '<div class="empty">조건에 맞는 공고가 없어요.</div>';
+}
+function renderStates() {
+  var fmt = function (s) { return s ? new Date(s).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; };
+  document.getElementById('states').innerHTML = DATA.states.length ? DATA.states.map(function (s) {
+    return '<div class="st"><span>' + esc(s.name) + ' · ' + s.count + '건' + (s.error ? '<br><span class="bad">⚠ ' + esc(s.error) + '</span>' : '') + '</span>' +
+      '<span class="' + (s.succeeded ? 'ok' : 'bad') + '">' + (s.succeeded ? '성공 ' + fmt(s.succeeded) : '실패 ' + fmt(s.attempted)) + '</span></div>';
+  }).join('') : '<p class="sub">아직 수집 기록이 없어요. 첫 자동 수집을 기다리거나 수동 갱신을 실행하세요.</p>';
+  var last = DATA.states.map(function (s) { return s.succeeded || ''; }).sort().pop();
+  document.getElementById('updated').textContent = '마지막 업데이트 ' + (last ? fmt(last) : '-') + ' (한국시간)';
+}
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-tab]'); if (t) { st.tab = t.dataset.tab; render(); return; }
+  var ty = e.target.closest('[data-type]');
+  if (ty) { st.type = ty.dataset.type; document.querySelectorAll('[data-type]').forEach(function (b) { b.classList.toggle('on', b === ty); }); render(); return; }
+  var s = e.target.closest('[data-save]');
+  if (s) { var id = s.dataset.save; if (saved[id]) delete saved[id]; else saved[id] = 1; persist(); render(); return; }
+  var qk = e.target.closest('[data-quick]');
+  if (qk) {
+    var v = qk.dataset.quick;
+    if (v === 'future') { st.basis = 'deadline'; st.from = today(); st.to = ''; }
+    else { st.basis = 'posted'; st.from = addDays(-+v); st.to = ''; }
+    syncPeriod(); render(); return;
+  }
+});
+function syncPeriod() { document.getElementById('pBasis').value = st.basis; document.getElementById('pFrom').value = st.from; document.getElementById('pTo').value = st.to; }
+document.getElementById('pClear').onclick = function () { st.from = ''; st.to = ''; syncPeriod(); render(); };
+document.getElementById('pBasis').onchange = function (e) { st.basis = e.target.value; render(); };
+document.getElementById('pFrom').onchange = function (e) { st.from = e.target.value; render(); };
+document.getElementById('pTo').onchange = function (e) { st.to = e.target.value; render(); };
+document.getElementById('q').oninput = function (e) { st.q = e.target.value.trim(); render(); };
+document.getElementById('status').onchange = function (e) { st.status = e.target.value; render(); };
+document.getElementById('sort').onchange = function (e) { st.sort = e.target.value; render(); };
+fetch('/api/jobs').then(function (r) { return r.json(); }).then(function (d) { DATA = d; render(); renderStates(); })
+  .catch(function () { document.getElementById('list').innerHTML = '<div class="empty">공고를 불러오지 못했어요. 잠시 후 새로고침해 주세요.</div>'; });
+</script>
+</body>
+</html>
