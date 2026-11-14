@@ -153,8 +153,31 @@ button,input,select{font:inherit;color:inherit}
 
 <script>
 var DATA = { jobs: [], states: [] };
-var st = { tab: 'all', type: 'all', q: '', open: true, savedOnly: false, sort: 'posted', dir: 'desc', basis: 'posted', from: '', to: '' };
-var TABS = [['all','전체 지역'],['osong','오송'],['충북','충북'],['세종','세종'],['jochiwon','조치원'],['충남','충남'],['cheonan','천안']];
+var st = { tab: 'all', sido: 'all', city: 'all', type: 'all', q: '', open: true, savedOnly: false, sort: 'posted', dir: 'desc', basis: 'posted', from: '', to: '' };
+var TABS = [['osong','오송'],['jochiwon','조치원']];
+var SIDO = ['충북', '충남', '세종'];
+var CITIES = {
+  '충북': ['청주시','충주시','제천시','보은군','옥천군','영동군','증평군','진천군','괴산군','음성군','단양군'],
+  '충남': ['천안시','공주시','보령시','아산시','서산시','논산시','계룡시','당진시','금산군','부여군','서천군','청양군','홍성군','예산군','태안군']
+};
+/** 공고의 시·군(세종은 읍·면·동). 주소 → 지도에서 찾은 주소 → 기관명·제목 순으로 본다 */
+function cityOf(j) {
+  if (j._city !== undefined) return j._city;
+  var addrText = (j.place || '') + ' ' + (j.geo_label || '');
+  var c = '';
+  if (j.region === '세종') {
+    var m = addrText.replace(/세종(특별자치시)?/g, ' ').match(/([가-힣]+)\d*(읍|면|동)(?=[\s\d]|$)/);
+    c = m ? m[1] + m[2] : '';
+  } else {
+    var list = CITIES[j.region] || [];
+    c = list.filter(function (x) { return addrText.indexOf(x) >= 0; })[0] || '';
+    if (!c) {                                        // 주소가 없으면 기관명·제목에서 '청주', '천안' 등
+      var t = j.organization + ' ' + j.title, best = -1;
+      list.forEach(function (x) { var i = t.indexOf(x.slice(0, -1)); if (i >= 0 && (best < 0 || i < best)) { best = i; c = x; } });
+    }
+  }
+  return (j._city = c || '지역 미확인');
+}
 var NOTES = {
   osong: '오송 공고: 어린이집은 상세 소재지가 오송읍으로 확인된 것, 교육청 공고는 주소를 확인해 둔 오송 기관(오송유치원·오송솔미유치원·오송솔미초·솔강초 병설 등)의 것만 보여요.',
   jochiwon: '조치원 공고: 어린이집 상세 소재지나 기관 주소가 조치원읍으로 확인된 것만 보여요. 통합 모집은 넣지 않아요.'
@@ -197,12 +220,13 @@ function inTab(j, tab) {
   if (tab === 'all') return true;
   if (tab === 'osong') return j.osong === 1;
   if (tab === 'jochiwon') return j.jochiwon === 1;
-  if (tab === 'cheonan') return /천안/.test((j.place || '') + ' ' + j.organization + ' ' + j.title);
   return j.region === tab;
 }
 function filtered() {
   return DATA.jobs.filter(function (j) {
     if (!inTab(j, st.tab)) return false;
+    if (st.sido !== 'all' && j.region !== st.sido) return false;
+    if (st.city !== 'all' && cityOf(j) !== st.city) return false;
     if (st.type !== 'all' && j.type.indexOf(st.type) !== 0) return false;
     if (st.open && dday(j.deadline).open === false) return false;
     if (st.savedOnly && !saved[j.id]) return false;
@@ -234,10 +258,28 @@ var ICON_D = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke
 var BOOK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="FILL" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
 
 function renderTabs() {
-  document.getElementById('regionBar').innerHTML = TABS.map(function (t) {
-    var n = DATA.jobs.filter(function (j) { return inTab(j, t[0]) && dday(j.deadline).open !== false; }).length;
-    return '<button class="pill' + (st.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + t[1] + ' <span class="cnt">' + n + '</span></button>';
+  var live = DATA.jobs.filter(function (j) { return dday(j.deadline).open !== false; });
+  var sidoOpts = '<option value="all">전체 지역 ' + live.length + '</option>' + SIDO.map(function (s) {
+    var n = live.filter(function (j) { return j.region === s; }).length;
+    return '<option value="' + s + '"' + (st.sido === s ? ' selected' : '') + '>' + s + ' ' + n + '</option>';
   }).join('');
+  var cityHtml = '';
+  if (st.sido !== 'all') {
+    var cnt = {};
+    live.forEach(function (j) { if (j.region === st.sido) { var c = cityOf(j); cnt[c] = (cnt[c] || 0) + 1; } });
+    var order = (CITIES[st.sido] || Object.keys(cnt).sort()).filter(function (c) { return cnt[c] && c !== '지역 미확인'; });
+    if (cnt['지역 미확인']) order.push('지역 미확인');
+    if (st.city !== 'all' && order.indexOf(st.city) < 0) order.unshift(st.city);
+    cityHtml = '<select class="pill' + (st.city !== 'all' ? ' on' : '') + '" id="city"><option value="all">' + (st.sido === '세종' ? '전체 읍·면·동' : '전체 시·군') + '</option>' +
+      order.map(function (c) { return '<option value="' + esc(c) + '"' + (st.city === c ? ' selected' : '') + '>' + esc(c) + ' ' + (cnt[c] || 0) + '</option>'; }).join('') + '</select>';
+  }
+  document.getElementById('regionBar').innerHTML =
+    '<select class="pill' + (st.sido !== 'all' ? ' on' : '') + '" id="sido">' + sidoOpts + '</select>' + cityHtml +
+    '<span class="sep"></span>' +
+    TABS.map(function (t) {
+      var n = live.filter(function (j) { return inTab(j, t[0]); }).length;
+      return '<button class="pill' + (st.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + t[1] + ' <span class="cnt">' + n + '</span></button>';
+    }).join('');
   var note = document.getElementById('tabNote');
   if (NOTES[st.tab]) { note.hidden = false; note.textContent = NOTES[st.tab]; } else note.hidden = true;
 }
@@ -302,9 +344,13 @@ function renderStates() {
 }
 function syncPeriod() { document.getElementById('pBasis').value = st.basis; document.getElementById('pFrom').value = st.from; document.getElementById('pTo').value = st.to; }
 
+document.getElementById('regionBar').addEventListener('change', function (e) {
+  if (e.target.id === 'sido') { st.sido = e.target.value; st.city = 'all'; st.tab = 'all'; render(); }
+  if (e.target.id === 'city') { st.city = e.target.value; st.tab = 'all'; render(); }
+});
 document.addEventListener('click', function (e) {
   if (e.target.id === 'emptyClear') { st.from = ''; st.to = ''; syncPeriod(); render(); return; }
-  var t = e.target.closest('[data-tab]'); if (t) { st.tab = t.dataset.tab; render(); return; }
+  var t = e.target.closest('[data-tab]'); if (t) { st.tab = st.tab === t.dataset.tab ? 'all' : t.dataset.tab; st.sido = 'all'; st.city = 'all'; render(); return; }
   var ty = e.target.closest('[data-type]');
   if (ty) { st.type = ty.dataset.type; document.querySelectorAll('[data-type]').forEach(function (b) { b.classList.toggle('on', b === ty); }); render(); return; }
   var s = e.target.closest('[data-save]');

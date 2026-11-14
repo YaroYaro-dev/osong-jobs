@@ -30,7 +30,7 @@ export default {
         const k = geoKey(j);
         const g = k ? geo.get(k) : undefined;
         if (k && !g) missing++;
-        return g && g.lat != null ? { ...j, lat: g.lat, lng: g.lng, approx: g.status === 'area' ? 1 : undefined } : j;
+        return g && g.lat != null ? { ...j, lat: g.lat, lng: g.lng, approx: g.status === 'area' ? 1 : undefined, geo_label: g.label } : j;
       });
       // 아직 위치를 모르는 기관이 있으면, 페이지를 연 김에 뒤에서 조금씩 찾아 둔다 (다음 새로고침부터 거리 표시)
       const needAddr = (jobs.results as any[]).some(j => j.source.endsWith('-child') && !/(로|길)\s?\d/.test(j.place || '') && !j.addr_checked);
