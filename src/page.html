@@ -64,6 +64,14 @@ button,input,select{font:inherit;color:inherit}
 .chip.o{background:var(--green-soft);color:var(--green);font-weight:700}
 .chip.new{background:none;color:var(--amber);font-weight:700;padding-left:2px}
 .chip.src{background:none;color:var(--mute);border:1px solid var(--line)}
+.chip.km{background:#f1ecff;color:#5b3fd1;font-weight:700}
+.locbox{display:none;margin-top:12px;background:var(--soft);border-radius:12px;padding:14px 16px;gap:10px}
+.locbox.open{display:grid}
+.locbox .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.locbox input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;font-size:14px}
+.locbox .msg{font-size:13px;color:var(--sub)}
+.locbox .msg.err{color:var(--rose)}
+.pill.loc.on{border-color:#5b3fd1;color:#5b3fd1;font-weight:700}
 .save{position:absolute;top:18px;right:16px;background:none;border:0;cursor:pointer;padding:4px;color:#c3c8cf}
 .save.on{color:var(--blue)}
 .empty{grid-column:1/-1;text-align:center;color:var(--sub);padding:60px 0}
@@ -95,10 +103,21 @@ button,input,select{font:inherit;color:inherit}
     <span class="sep"></span>
     <button class="pill on" id="openOnly">접수 중만</button>
     <button class="pill" id="savedOnly">★ 관심 공고</button>
+    <button class="pill loc" id="locBtn">📍 <span id="locLabel">내 위치 설정</span></button>
+    <select class="pill" id="radius" title="거리 필터" hidden><option value="0">거리 전체</option><option value="3">3km 이내</option><option value="5">5km 이내</option><option value="10">10km 이내</option><option value="20">20km 이내</option></select>
     <button class="pill" id="filterBtn">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
       기간 필터<span class="cnt" id="periodBadge"></span>
     </button>
+  </div>
+  <div class="locbox" id="locbox">
+    <div class="row">
+      <button class="pill mini" id="useGps">📍 현재 위치 사용</button>
+      <input id="locInput" placeholder="또는 주소 입력 (예: 오송읍 오송생명1로 194)">
+      <button class="pill mini" id="locFind">주소로 찾기</button>
+      <button class="pill mini" id="locClear">위치 지우기</button>
+    </div>
+    <div class="msg" id="locMsg">내 위치는 이 브라우저에만 저장되고 서버에 남지 않아요. 거리는 직선거리예요.</div>
   </div>
   <div class="drawer" id="drawer">
     <div class="row"><span class="lbl">기준</span>
@@ -120,6 +139,7 @@ button,input,select{font:inherit;color:inherit}
       <option value="posted:asc">오래된순</option>
       <option value="deadline:asc">마감 빠른순</option>
       <option value="deadline:desc">마감 늦은순</option>
+      <option value="dist:asc" id="distOpt" disabled>가까운순 (내 위치 필요)</option>
     </select>
   </div>
   <p class="note" id="tabNote" hidden></p>
@@ -140,6 +160,17 @@ var NOTES = {
   jochiwon: '조치원 공고: 어린이집 상세 소재지나 기관 주소가 조치원읍으로 확인된 것만 보여요. 통합 모집은 넣지 않아요.'
 };
 var SRC = { cbe: '충북교육청', mpool: '기간제 인력풀', 'chungbuk-child': '충북육아종합', 'sejong-child': '세종육아종합', 'sejong-school': '유치원 홈페이지', sssc: '학교지원본부' };
+var me = null;   // {lat,lng,label}
+try { me = JSON.parse(localStorage.getItem('osong-me') || 'null'); } catch (e) {}
+st.radius = 0;
+function saveMe() { try { if (me) localStorage.setItem('osong-me', JSON.stringify(me)); else localStorage.removeItem('osong-me'); } catch (e) {} }
+function km(j) {
+  if (!me || j.lat == null || j.lng == null) return null;
+  var toR = Math.PI / 180, dLat = (j.lat - me.lat) * toR, dLng = (j.lng - me.lng) * toR;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(me.lat * toR) * Math.cos(j.lat * toR) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * 6371 * Math.asin(Math.sqrt(a));
+}
+function kmText(d) { return d < 1 ? Math.round(d * 100) * 10 + 'm' : (d < 10 ? d.toFixed(1) : Math.round(d)) + 'km'; }
 var saved = {};
 try { saved = JSON.parse(localStorage.getItem('osong-saved') || '{}'); } catch (e) {}
 function persist() { try { localStorage.setItem('osong-saved', JSON.stringify(saved)); } catch (e) {} }
@@ -174,6 +205,7 @@ function filtered() {
     if (st.type !== 'all' && j.type.indexOf(st.type) !== 0) return false;
     if (st.open && dday(j.deadline).open === false) return false;
     if (st.savedOnly && !saved[j.id]) return false;
+    if (me && st.radius) { var dk = km(j); if (dk == null || dk > st.radius) return false; }
     if (st.q) { var h = (j.title + ' ' + j.organization + ' ' + (j.place || '')).toLowerCase(); if (h.indexOf(st.q.toLowerCase()) < 0) return false; }
     var v = st.basis === 'deadline' ? j.deadline : j.posted;
     if ((st.from || st.to) && !v) return false;
@@ -182,6 +214,12 @@ function filtered() {
     return true;
   }).sort(function (a, b) {
     var sign = st.dir === 'asc' ? 1 : -1;
+    if (st.sort === 'dist') {
+      var da = km(a), db = km(b);
+      if (da == null && db == null) return b.posted.localeCompare(a.posted);
+      if (da == null) return 1; if (db == null) return -1;
+      return da - db;
+    }
     if (st.sort === 'deadline') {
       if (!a.deadline && !b.deadline) return b.posted.localeCompare(a.posted);
       if (!a.deadline) return 1; if (!b.deadline) return -1;
@@ -204,7 +242,14 @@ function renderTabs() {
 }
 function render() {
   renderTabs();
+  document.getElementById('distOpt').disabled = !me;
+  document.getElementById('distOpt').textContent = me ? '가까운순' : '가까운순 (내 위치 필요)';
+  if (!me && st.sort === 'dist') { st.sort = 'posted'; st.dir = 'desc'; }
   document.getElementById('sort').value = st.sort + ':' + st.dir;
+  document.getElementById('locLabel').textContent = me ? (me.label || '내 위치') : '내 위치 설정';
+  document.getElementById('locBtn').classList.toggle('on', !!me);
+  document.getElementById('radius').hidden = !me;
+  document.getElementById('radius').value = String(st.radius || 0);
   document.getElementById('openOnly').classList.toggle('on', st.open);
   document.getElementById('savedOnly').classList.toggle('on', st.savedOnly);
   document.getElementById('periodBadge').textContent = (st.from || st.to) ? ' · 설정됨' : '';
@@ -217,7 +262,9 @@ function render() {
     var org = j.organization.split(' · ')[0];
     var metaBits = j.organization.split(' · ').slice(1);
     var loc = addr(j.place) || (j.region === '세종' ? '세종특별자치시' : '충청북도');
+    var dk = km(j);
     var chips =
+      (dk != null ? '<span class="chip km">📍 ' + kmText(dk) + '</span>' : '') +
       (j.deadline ? '<span class="chip ' + (d.open === false ? 'end' : 'dl') + '">~' + md(j.deadline) + '</span>' : '') +
       '<span class="chip ' + (d.cls || 'dl') + '">' + d.txt + '</span>' +
       (j.osong ? '<span class="chip o">오송</span>' : '') + (j.jochiwon ? '<span class="chip o">조치원</span>' : '') +
@@ -262,6 +309,28 @@ document.addEventListener('click', function (e) {
     syncPeriod(); render(); return;
   }
 });
+function locMsg(t, err) { var m = document.getElementById('locMsg'); m.textContent = t; m.classList.toggle('err', !!err); }
+document.getElementById('locBtn').onclick = function () { document.getElementById('locbox').classList.toggle('open'); };
+document.getElementById('useGps').onclick = function () {
+  if (!navigator.geolocation) { locMsg('이 브라우저는 위치 기능을 지원하지 않아요. 주소로 찾아 주세요.', true); return; }
+  locMsg('현재 위치를 확인하는 중…');
+  navigator.geolocation.getCurrentPosition(function (p) {
+    me = { lat: p.coords.latitude, lng: p.coords.longitude, label: '현재 위치' }; saveMe();
+    st.sort = 'dist'; st.dir = 'asc'; locMsg('현재 위치로 저장했어요. 가까운순으로 정렬했어요.'); render();
+  }, function () { locMsg('위치 권한이 거부됐거나 위치를 찾지 못했어요. 주소로 찾아 주세요.', true); }, { enableHighAccuracy: false, timeout: 10000 });
+};
+document.getElementById('locFind').onclick = function () {
+  var q = document.getElementById('locInput').value.trim(); if (!q) { locMsg('주소를 입력해 주세요.', true); return; }
+  locMsg('주소를 찾는 중…');
+  fetch('/api/geocode?q=' + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (g) {
+    if (g.error) { locMsg(g.error, true); return; }
+    me = { lat: g.lat, lng: g.lng, label: q.length > 14 ? q.slice(0, 14) + '…' : q }; saveMe();
+    st.sort = 'dist'; st.dir = 'asc'; locMsg('저장했어요: ' + g.label + ' · 가까운순으로 정렬했어요.'); render();
+  }).catch(function () { locMsg('주소 검색에 실패했어요. 잠시 후 다시 시도해 주세요.', true); });
+};
+document.getElementById('locInput').onkeydown = function (e) { if (e.key === 'Enter') document.getElementById('locFind').click(); };
+document.getElementById('locClear').onclick = function () { me = null; saveMe(); st.radius = 0; locMsg('내 위치를 지웠어요.'); render(); };
+document.getElementById('radius').onchange = function (e) { st.radius = +e.target.value; render(); };
 document.getElementById('openOnly').onclick = function () { st.open = !st.open; render(); };
 document.getElementById('savedOnly').onclick = function () { st.savedOnly = !st.savedOnly; render(); };
 document.getElementById('filterBtn').onclick = function () { document.getElementById('drawer').classList.toggle('open'); };

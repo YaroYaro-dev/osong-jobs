@@ -4,6 +4,7 @@ import {
   parseSchoolFeed, parseSssc, deadlineFromText, pageIds,
 } from './parse';
 import { tags } from './places';
+import { geocodePending } from './geo';
 
 export interface Env {
   DB: D1Database;
@@ -11,6 +12,7 @@ export interface Env {
   RESEND_API_KEY?: string;   // 선택: 새 오송 공고 이메일 알림
   NOTIFY_TO?: string;        // 선택: 알림 받을 이메일
   NOTIFY_FROM?: string;      // 선택: 보내는 주소 (Resend에서 인증한 주소)
+  KAKAO_REST_KEY?: string;   // 선택: 기관 위치(거리 표시)용 카카오 REST API 키
 }
 
 const UA = 'OsongJobsCollector/1.0 (personal job alert; low frequency)';
@@ -220,14 +222,16 @@ async function notify(env: Env) {
 // ───── 실행 묶음 (무료 요금제: 크론 5개, 실행당 외부 요청 50개) ─────
 export const GROUPS: Record<string, (env: Env) => Promise<void>> = {
   // 하루 3번: 교육청 게시판은 한 번에 최신 10건만 보여서 자주 본다
-  edu: async env => { await cbeBoard(env); await cbeMpool(env); await fillDetails(env); await notify(env); },
-  childcare_cb: async env => { await childcare(env, 'chungbuk'); await fillDetails(env); await notify(env); },
-  childcare_sj: async env => { await childcare(env, 'sejong'); await fillDetails(env); },
+  edu: async env => { await cbeBoard(env); await cbeMpool(env); await fillDetails(env, 15); await notify(env); await geocodePending(env, 8); },
+  childcare_cb: async env => { await childcare(env, 'chungbuk'); await fillDetails(env, 15); await notify(env); await geocodePending(env, 8); },
+  childcare_sj: async env => { await childcare(env, 'sejong'); await fillDetails(env, 15); await geocodePending(env, 8); },
   schools_1: async env => { await sejongSchools(env, 1); },
   schools_2: async env => { await sejongSchools(env, 2); await sssc(env); await fillDetails(env, 15); },
   // 한 번만 수동 실행: 이미 뒤로 밀려난 공고 채우기 (무료 요금제 요청 한도 안에서 약 40페이지 = 400건)
   backfill_cbe: async env => { await cbeBoard(env, 40, true); },
   backfill_mpool: async env => { await cbeMpool(env, 40, true); },
+  // 기관 위치를 한꺼번에 채우기 (수동, 실행당 20곳 · 무료 요금제 요청 한도)
+  geo: async env => { await geocodePending(env, 20); },
 };
 
 // wrangler.toml의 crons 순서와 맞춘다 (UTC 기준)
