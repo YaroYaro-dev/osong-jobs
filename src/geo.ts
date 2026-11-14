@@ -77,7 +77,7 @@ export async function geocodePending(env: Env, budget = 15) {
   if (!env.KAKAO_REST_KEY) return;
   await ensureGeoTable(env);
   const jobs = await env.DB.prepare(`SELECT source, region, title, organization, place FROM jobs
-      WHERE posted >= date('now','-180 days') ORDER BY posted DESC LIMIT 1500`).all<any>();
+      WHERE posted >= date('now','-180 days') ORDER BY osong DESC, jochiwon DESC, posted DESC LIMIT 1500`).all<any>();
   const known = new Set((await env.DB.prepare(`SELECT key FROM geo`).all<{ key: string }>()).results.map(r => r.key));
   const todo: string[] = [];
   for (const j of jobs.results) {
@@ -102,9 +102,12 @@ export async function geocodePending(env: Env, budget = 15) {
   }
   if (rows.length) await env.DB.batch(rows);
   const total = await env.DB.prepare(`SELECT COUNT(*) AS n FROM geo WHERE status='ok'`).first<{ n: number }>();
+  const miss = await env.DB.prepare(`SELECT COUNT(*) AS n FROM geo WHERE status<>'ok'`).first<{ n: number }>();
+  
   if (rows.length) {
     await env.DB.prepare(`INSERT INTO source_states (id,name,attempted,succeeded,error,count) VALUES ('geo','기관 위치 찾기 (카카오)',?,?,NULL,?)
       ON CONFLICT(id) DO UPDATE SET attempted=excluded.attempted, succeeded=excluded.succeeded, error=NULL, count=excluded.count`)
       .bind(now, now, total?.n ?? 0).run();
+    await env.DB.prepare(`UPDATE source_states SET name=? WHERE id='geo'`).bind(`기관 위치 찾기 (카카오) · 찾음 ${total?.n ?? 0} / 못 찾음 ${miss?.n ?? 0}`).run();
   }
 }

@@ -31,7 +31,7 @@ export default {
         return g && g.status === 'ok' ? { ...j, lat: g.lat, lng: g.lng } : j;
       });
       // 아직 위치를 모르는 기관이 있으면, 페이지를 연 김에 뒤에서 조금씩 찾아 둔다 (다음 새로고침부터 거리 표시)
-      if (missing && env.KAKAO_REST_KEY) ctx.waitUntil(geocodePending(env, 15).catch(() => {}));
+      if (missing && env.KAKAO_REST_KEY) ctx.waitUntil(geocodePending(env, 20).catch(() => {}));
       return Response.json({ jobs: list, states: states.results }, { headers: { 'cache-control': 'no-store' } });
     }
 
