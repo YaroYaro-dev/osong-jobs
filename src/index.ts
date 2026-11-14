@@ -1,6 +1,6 @@
 import { Env, GROUPS, CRON_TO_GROUP } from './collect';
 import PAGE from './page.html';
-import { geoKey, lookup, ensureGeoTable, GeoRow } from './geo';
+import { geoKey, geocodePending, lookup, ensureGeoTable, GeoRow } from './geo';
 
 export default {
   // 정해진 시간에 자동 수집
@@ -9,7 +9,7 @@ export default {
     if (group) ctx.waitUntil(GROUPS[group](env));
   },
 
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
 
     if (url.pathname === '/' || url.pathname === '/index.html') {
@@ -22,11 +22,16 @@ export default {
       const states = await env.DB.prepare('SELECT * FROM source_states ORDER BY id').all();
       // 기관 좌표 붙이기
       await ensureGeoTable(env);
-      const geo = new Map((await env.DB.prepare(`SELECT key,lat,lng,label,status FROM geo WHERE status='ok'`).all<GeoRow>()).results.map(g => [g.key, g]));
+      const geo = new Map((await env.DB.prepare(`SELECT key,lat,lng,label,status FROM geo`).all<GeoRow>()).results.map(g => [g.key, g]));
+      let missing = 0;
       const list = (jobs.results as any[]).map(j => {
-        const g = geo.get(geoKey(j) || '');
-        return g ? { ...j, lat: g.lat, lng: g.lng } : j;
+        const k = geoKey(j);
+        const g = k ? geo.get(k) : undefined;
+        if (k && !g) missing++;
+        return g && g.status === 'ok' ? { ...j, lat: g.lat, lng: g.lng } : j;
       });
+      // 아직 위치를 모르는 기관이 있으면, 페이지를 연 김에 뒤에서 조금씩 찾아 둔다 (다음 새로고침부터 거리 표시)
+      if (missing && env.KAKAO_REST_KEY) ctx.waitUntil(geocodePending(env, 15).catch(() => {}));
       return Response.json({ jobs: list, states: states.results }, { headers: { 'cache-control': 'no-store' } });
     }
 
